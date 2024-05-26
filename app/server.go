@@ -6,11 +6,14 @@ import (
 	"os"
 )
 
+const (
+	MAX_BUFFER_SIZE = 1024
+	PORT            = 4221
+)
+
 func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Initializing server...")
-
-	const PORT = 4221
 
 	// Used for inbound connections -> We only use it as we are server not client
 	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%v", PORT))
@@ -29,21 +32,35 @@ func main() {
 			continue
 		}
 
-		handelClientConnection(connection)
+		go handleClientConnection(connection)
 	}
 }
 
-func handelClientConnection(connection net.Conn) {
+func handleClientConnection(connection net.Conn) {
 	defer connection.Close()
-	buffer := make([]byte, 1024)
-	_, err := connection.Read(buffer)
+
+	var response HTTPResponse
+
+	buffer := make([]byte, MAX_BUFFER_SIZE)
+	requestTimeout, err := connection.Read(buffer)
+
 	if err != nil {
 		fmt.Println("Error reading request: ", err.Error())
 		return
 	}
 
-	_, err = connection.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	request, err := ParseRequestRead(buffer, requestTimeout)
 	if err != nil {
+		fmt.Println("Error parsing request: ", err.Error())
+		return
+	}
+
+	if request.URI == "/" {
+		response = OK
+	} else {
+		response = NotFound
+	}
+	if _, err = connection.Write([]byte(response)); err != nil {
 		fmt.Println("Error writing response: ", err.Error())
 		return
 	}
