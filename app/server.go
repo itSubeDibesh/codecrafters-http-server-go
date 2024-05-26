@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 const (
@@ -55,8 +56,13 @@ func handleClientConnection(connection net.Conn) {
 		return
 	}
 
+	isValidEchoURL := strings.Split(request.URI, "/")[1] == "echo" && strings.HasPrefix(request.URI, "/echo") && len(strings.Split(request.URI, "/")) == 3
+
 	if request.URI == "/" {
 		response = OK
+	} else if isValidEchoURL {
+		pathParams := strings.Split(request.URI, "/")[2]
+		response = HTTPResponse(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(pathParams), pathParams))
 	} else {
 		response = NotFound
 	}
