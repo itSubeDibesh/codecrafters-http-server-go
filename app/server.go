@@ -93,11 +93,15 @@ func isValidEchoURI(uri string) bool {
 
 func handleEchoRequest(request *HTTPRequest) HTTPResponse {
 	pathParams := strings.Split(request.URI, "/")[2]
-	return getSuccessResponse(pathParams)
+	value, ok := request.Headers["Accept-Encoding"]
+	if ok && strings.ToLower(strings.TrimSpace(value)) == "gzip" {
+		return getSuccessResponse(pathParams, "gzip")
+	}
+	return getSuccessResponse(pathParams, "")
 }
 
 func handleUserAgentRequest(request *HTTPRequest) HTTPResponse {
-	return getSuccessResponse(request.UserAgent)
+	return getSuccessResponse(request.UserAgent, "")
 }
 
 func isValidFileURI(uri string) bool {
@@ -120,7 +124,10 @@ func handleFileRequest(request *HTTPRequest) HTTPResponse {
 	}
 }
 
-func getSuccessResponse(content string) HTTPResponse {
+func getSuccessResponse(content string, encoding string) HTTPResponse {
+	if len(encoding) != 0 {
+		return HTTPResponse(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\nContent-Encoding: %s\r\n\r\n%s\r\n", len(content), encoding, content))
+	}
 	return HTTPResponse(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s\r\n", len(content), content))
 }
 

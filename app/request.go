@@ -24,6 +24,7 @@ type HTTPRequest struct {
 	Accept      string
 	ContentType string
 	Body        string
+	Headers     map[string]string
 }
 
 func ParseRequestRead(b []byte, n int) (*HTTPRequest, error) {
@@ -49,5 +50,12 @@ func ParseRequestRead(b []byte, n int) (*HTTPRequest, error) {
 	}
 	r.ContentType = bufferString[len(bufferString)-2]
 	r.Body = bufferString[len(bufferString)-1]
+	r.Headers = make(map[string]string)
+	for _, v := range bufferString[1:] {
+		if strings.Contains(v, ":") {
+			header := strings.Split(v, ":")
+			r.Headers[header[0]] = header[1]
+		}
+	}
 	return r, nil
 }
