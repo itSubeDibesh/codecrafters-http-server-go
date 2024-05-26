@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -56,21 +57,62 @@ func handleClientConnection(connection net.Conn) {
 		return
 	}
 
-	isValidEchoURL := strings.Split(request.URI, "/")[1] == "echo" && strings.HasPrefix(request.URI, "/echo") && len(strings.Split(request.URI, "/")) == 3
+	response = handleRequest(request)
 
-	if request.URI == "/" {
-		response = OK
-	} else if isValidEchoURL {
-		pathParams := strings.Split(request.URI, "/")[2]
-		response = HTTPResponse(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(pathParams), pathParams))
-	} else if strings.HasPrefix(request.URI, "/user-agent") {
-		response = HTTPResponse(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(request.UserAgent), request.UserAgent))
-	} else {
-		response = NotFound
-	}
 	if _, err = connection.Write([]byte(response)); err != nil {
 		fmt.Println("Error writing response: ", err.Error())
 		return
 	}
+}
 
+func handleRequest(request *HTTPRequest) HTTPResponse {
+	if request.URI == "/" {
+		return OK
+	} else if isValidEchoURI(request.URI) {
+		return handleEchoRequest(request)
+	} else if strings.HasPrefix(request.URI, "/user-agent") {
+		return handleUserAgentRequest(request)
+	} else if isValidFileURI(request.URI) {
+		return handleFileRequest(request)
+	} else {
+		return NotFound
+	}
+}
+
+func isValidEchoURI(uri string) bool {
+	parts := strings.Split(uri, "/")
+	return len(parts) == 3 && parts[1] == "echo" && strings.HasPrefix(uri, "/echo")
+}
+
+func handleEchoRequest(request *HTTPRequest) HTTPResponse {
+	pathParams := strings.Split(request.URI, "/")[2]
+	return getSuccessResponse(pathParams)
+}
+
+func handleUserAgentRequest(request *HTTPRequest) HTTPResponse {
+	return getSuccessResponse(request.UserAgent)
+}
+
+func isValidFileURI(uri string) bool {
+	parts := strings.Split(uri, "/")
+	return len(parts) == 3 && parts[1] == "files" && strings.HasPrefix(uri, "/files")
+}
+
+func handleFileRequest(request *HTTPRequest) HTTPResponse {
+	file := strings.Split(request.URI, "/")[2]
+	dir := os.Args[2]
+	if _, err := os.Stat(filepath.Join(dir, file)); os.IsNotExist(err) {
+		return NotFound
+	} else {
+		data, err := os.ReadFile(filepath.Join(dir, file))
+		if err != nil {
+			return NotFound
+		} else {
+			return HTTPResponse(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%v\r\n", len(data), string(data)))
+		}
+	}
+}
+
+func getSuccessResponse(content string) HTTPResponse {
+	return HTTPResponse(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s\r\n", len(content), content))
 }
