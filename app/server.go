@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"os"
@@ -73,7 +74,13 @@ func handleRequest(request *HTTPRequest) HTTPResponse {
 	} else if strings.HasPrefix(request.URI, "/user-agent") {
 		return handleUserAgentRequest(request)
 	} else if isValidFileURI(request.URI) {
-		return handleFileRequest(request)
+		if request.Method == string(GET) {
+			return handleFileRequest(request)
+		}
+		if request.Method == string(POST) {
+			return handelFileUploadRequest(request)
+		}
+		return NotFound
 	} else {
 		return NotFound
 	}
@@ -115,4 +122,15 @@ func handleFileRequest(request *HTTPRequest) HTTPResponse {
 
 func getSuccessResponse(content string) HTTPResponse {
 	return HTTPResponse(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s\r\n", len(content), content))
+}
+
+func handelFileUploadRequest(request *HTTPRequest) HTTPResponse {
+	file := strings.Split(request.URI, "/")[2]
+	dir := os.Args[2]
+	data := []byte(bytes.Trim([]byte(request.Body), "\x00"))
+
+	if err := os.WriteFile(filepath.Join(dir, file), data, 0644); err != nil {
+		return InternalServerError
+	}
+	return Created
 }

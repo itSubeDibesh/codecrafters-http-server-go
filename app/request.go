@@ -16,12 +16,14 @@ const (
 )
 
 type HTTPRequest struct {
-	Method    string
-	Protocol  string
-	URI       string
-	Host      string
-	UserAgent string
-	Accept    string
+	Method      string
+	Protocol    string
+	URI         string
+	Host        string
+	UserAgent   string
+	Accept      string
+	ContentType string
+	Body        string
 }
 
 func ParseRequestRead(b []byte, n int) (*HTTPRequest, error) {
@@ -45,5 +47,7 @@ func ParseRequestRead(b []byte, n int) (*HTTPRequest, error) {
 			r.Accept = strings.Split(v, " ")[1]
 		}
 	}
+	r.ContentType = bufferString[len(bufferString)-2]
+	r.Body = bufferString[len(bufferString)-1]
 	return r, nil
 }
