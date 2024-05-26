@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"net"
 	"os"
@@ -96,7 +97,11 @@ func handleEchoRequest(request *HTTPRequest) HTTPResponse {
 	value, ok := request.Headers["Accept-Encoding"]
 	if ok {
 		if strings.Contains(strings.ToLower(strings.TrimSpace(value)), "gzip") {
-			return getSuccessResponse(pathParams, "gzip")
+			buffer := new(bytes.Buffer)
+			gzWrite := gzip.NewWriter(buffer)
+			gzWrite.Write([]byte(pathParams))
+			gzWrite.Close()
+			return getSuccessResponse(buffer.String(), "gzip")
 		}
 		return getSuccessResponse(pathParams, "")
 	}
