@@ -63,6 +63,8 @@ func handleClientConnection(connection net.Conn) {
 	} else if isValidEchoURL {
 		pathParams := strings.Split(request.URI, "/")[2]
 		response = HTTPResponse(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(pathParams), pathParams))
+	} else if strings.HasPrefix(request.URI, "/user-agent") {
+		response = HTTPResponse(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(request.UserAgent), request.UserAgent))
 	} else {
 		response = NotFound
 	}
