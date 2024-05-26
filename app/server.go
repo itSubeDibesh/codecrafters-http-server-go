@@ -94,8 +94,11 @@ func isValidEchoURI(uri string) bool {
 func handleEchoRequest(request *HTTPRequest) HTTPResponse {
 	pathParams := strings.Split(request.URI, "/")[2]
 	value, ok := request.Headers["Accept-Encoding"]
-	if ok && strings.ToLower(strings.TrimSpace(value)) == "gzip" {
-		return getSuccessResponse(pathParams, "gzip")
+	if ok {
+		if strings.Contains(strings.ToLower(strings.TrimSpace(value)), "gzip") {
+			return getSuccessResponse(pathParams, "gzip")
+		}
+		return getSuccessResponse(pathParams, "")
 	}
 	return getSuccessResponse(pathParams, "")
 }
